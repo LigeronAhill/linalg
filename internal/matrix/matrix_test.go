@@ -29,15 +29,11 @@ func TestProduct(t *testing.T) {
 	r0 := []*rational.Rational{rational.ParseInt(0), rational.ParseInt(0)}
 	r1 := []*rational.Rational{rational.ParseInt(1), rational.ParseInt(0)}
 	r2 := []*rational.Rational{rational.ParseInt(0), rational.ParseInt(1)}
-	A := New(2, 2).SetRow(0, r2).SetRow(1, r0) // 01 00
-	t.Logf("A:\n%s", A)
-	B := New(2, 2).SetRow(0, r0).SetRow(1, r1) // 00 10
-	t.Logf("B:\n%s", B)
+	A := New(2, 2).SetRow(0, r2).SetRow(1, r0)    // 01 00
+	B := New(2, 2).SetRow(0, r0).SetRow(1, r1)    // 00 10
 	want := New(2, 2).SetRow(0, r1).SetRow(1, r0) // 10 00
-	t.Logf("Want:\n%s", want)
 	C, err := A.Product(B)
 	assert.NoError(err)
-	t.Logf("Got:\n%s", C)
 	D, err := B.Product(A)
 	assert.NoError(err)
 	for i, row := range *C {

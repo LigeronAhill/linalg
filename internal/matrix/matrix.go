@@ -199,22 +199,11 @@ func (m *Matrix) Determinant() (*rational.Rational, error) {
 				cr, _ := result.GetRow(i) // 5
 				for k, el := range cr {
 					v := el.Sub(mr[k].Multiply(m))
-					if k == j && v.N() != 0 {
-						fmt.Printf("ELEMENT: %s\n", el.String())
-						fmt.Printf("DIVIDER: %s\n", d.String())
-						fmt.Printf("NEW ELEMENT: %s\n", v.String())
-						fmt.Printf("MODIFIER: %s\n", m.String())
-						fmt.Printf("MODIFYING ELEMENT: %s\n", mr[k].String())
-						fmt.Printf("PRODUCTION: %s\n", mr[k].Multiply(m).String())
-					}
 					cr[k] = v
 				}
 				result.SetRow(i, cr)
 			}
 		}
-	}
-	for _, row := range *result {
-		fmt.Println(row)
 	}
 	d := rational.ParseInt(1)
 	for i, row := range *result {
@@ -225,13 +214,4 @@ func (m *Matrix) Determinant() (*rational.Rational, error) {
 		}
 	}
 	return d, nil
-}
-
-func (m *Matrix) multyRow(i int, modifier *rational.Rational) []*rational.Rational {
-	var result []*rational.Rational
-	current := (*m)[i]
-	for _, c := range current {
-		result = append(result, c.Multiply(modifier))
-	}
-	return result
 }
