@@ -14,10 +14,9 @@ func TestString(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want1 := &Rational{i: 15}
+	want1 := &Rational{n: 15, d: 1}
 	want2 := &Rational{
-		i: 4,
-		n: 3,
+		n: 19,
 		d: 4,
 	}
 	assert.Equal(t, want1, t1)
@@ -25,11 +24,10 @@ func TestString(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
-	got := New(0, 16, 8)
+	got := New(16, 8)
 	want := &Rational{
-		i: 2,
-		n: 0,
-		d: 0,
+		n: 2,
+		d: 1,
 	}
 	assert.Equal(t, want, got)
 }
@@ -38,14 +36,14 @@ func TestParseInt(t *testing.T) {
 	assert := assert.New(t)
 	i := 42
 	r := ParseInt(i)
-	want := New(i, 0, 0)
+	want := New(42, 1)
 	assert.Equal(want, r)
 }
 
 func TestParseFloat(t *testing.T) {
 	assert := assert.New(t)
 	f := 4.63
-	want := New(4, 63, 100)
+	want := New(463, 100)
 	got, err := ParseFloat(f)
 	assert.NoError(err)
 	assert.Equal(want, got)
@@ -59,19 +57,19 @@ func TestAdd(t *testing.T) {
 		want *Rational
 	}{
 		{
-			a:    New(5, 6, 8),
-			b:    New(2, 0, 0),
-			want: New(7, 6, 8),
+			a:    New(46, 8),
+			b:    New(2, 1),
+			want: New(62, 8),
 		},
 		{
-			a:    New(7, 15, 43),
-			b:    New(4, 65, 98),
-			want: New(12, 51, 4214),
+			a:    New(7*43+15, 43),
+			b:    New(4*98+65, 98),
+			want: New(12*4214+51, 4214),
 		},
 		{
-			a:    New(0, 69, 96),
-			b:    New(5, 55, 87),
-			want: New(6, 977, 2784),
+			a:    New(69, 96),
+			b:    New(5*87+55, 87),
+			want: New(6*2784+977, 2784),
 		},
 	}
 	for _, test := range tt {
@@ -87,19 +85,19 @@ func TestSub(t *testing.T) {
 		want *Rational
 	}{
 		{
-			a:    New(5, 6, 8),
-			b:    New(2, 0, 0),
-			want: New(3, 6, 8),
+			a:    New(5*8+6, 8),
+			b:    New(2, 1),
+			want: New(3*8+6, 8),
 		},
 		{
-			a:    New(7, 15, 43),
-			b:    New(4, 65, 98),
-			want: New(2, 2889, 4214),
+			a:    New(7*43+15, 43),
+			b:    New(4*98+65, 98),
+			want: New(2*4214+2889, 4214),
 		},
 		{
-			a:    New(10, 69, 96),
-			b:    New(5, 55, 87),
-			want: New(5, 241, 2784),
+			a:    New(10*96+69, 96),
+			b:    New(5*87+55, 87),
+			want: New(5*2784+241, 2784),
 		},
 	}
 	for _, test := range tt {
@@ -115,19 +113,19 @@ func TestMultiply(t *testing.T) {
 		want *Rational
 	}{
 		{
-			a:    New(5, 6, 8),
-			b:    New(2, 0, 0),
-			want: New(11, 1, 2),
+			a:    New(5*8+6, 8),
+			b:    New(-2, 1),
+			want: New(-11*2-1, 2),
 		},
 		{
-			a:    New(7, 15, 43),
-			b:    New(4, 65, 98),
-			want: New(34, 568, 2107),
+			a:    New(7*43+15, 43),
+			b:    New(4*98+65, 98),
+			want: New(34*2107+568, 2107),
 		},
 		{
-			a:    New(10, 69, 96),
-			b:    New(5, 55, 87),
-			want: New(60, 515, 1392),
+			a:    New(10*96+69, 96),
+			b:    New(5*87+55, 87),
+			want: New(60*1392+515, 1392),
 		},
 	}
 	for _, test := range tt {
@@ -143,19 +141,19 @@ func TestDivide(t *testing.T) {
 		want *Rational
 	}{
 		{
-			a:    New(5, 6, 8),
-			b:    New(2, 0, 0),
-			want: New(2, 7, 8),
+			a:    New(5*8+6, 8),
+			b:    New(-2, 1),
+			want: New(-2*8-7, 8),
 		},
 		{
-			a:    New(7, 15, 43),
-			b:    New(4, 65, 98),
-			want: New(1, 11317, 19651),
+			a:    New(7*43+15, 43),
+			b:    New(4*98+65, 98),
+			want: New(19651+11317, 19651),
 		},
 		{
-			a:    New(10, 69, 96),
-			b:    New(5, 55, 87),
-			want: New(1, 289, 320),
+			a:    New(10*96+69, 96),
+			b:    New(5*87+55, 87),
+			want: New(320+289, 320),
 		},
 	}
 	for _, test := range tt {

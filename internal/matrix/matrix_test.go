@@ -3,132 +3,147 @@ package matrix
 import (
 	"testing"
 
+	"github.com/LigeronAhill/linalg/internal/rational"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNew(t *testing.T) {
 	assert := assert.New(t)
-	m := New[int](3, 3)
+	m := New(3, 3)
 	assert.Equal(3, len(*m))
 	assert.Equal(3, len((*m)[0]))
 }
 
 func SetRow(t *testing.T) {
 	assert := assert.New(t)
-	m := New[int](3, 3)
+	m := New(3, 3)
 	m.
-		SetRow(0, []int{1, 2, 3}).
-		SetRow(1, []int{4, 5, 6}).
-		SetRow(2, []int{7, 8, 9})
-	assert.Equal(5, (*m)[1][1])
+		SetRow(0, []*rational.Rational{rational.ParseInt(1), rational.ParseInt(2), rational.ParseInt(3)}).
+		SetRow(1, []*rational.Rational{rational.ParseInt(4), rational.ParseInt(5), rational.ParseInt(6)}).
+		SetRow(2, []*rational.Rational{rational.ParseInt(7), rational.ParseInt(8), rational.ParseInt(9)})
+	assert.Equal(rational.ParseInt(5), (*m)[1][1])
 }
 
 func TestProduct(t *testing.T) {
 	assert := assert.New(t)
-	A := New[int](2, 2).SetRow(0, []int{0, 1}).SetRow(1, []int{0, 0})
-	B := New[int](2, 2).SetRow(0, []int{0, 0}).SetRow(1, []int{1, 0})
-	want := New[int](2, 2).SetRow(0, []int{1, 0}).SetRow(1, []int{0, 0})
+	r0 := []*rational.Rational{rational.ParseInt(0), rational.ParseInt(0)}
+	r1 := []*rational.Rational{rational.ParseInt(1), rational.ParseInt(0)}
+	r2 := []*rational.Rational{rational.ParseInt(0), rational.ParseInt(1)}
+	A := New(2, 2).SetRow(0, r2).SetRow(1, r0) // 01 00
+	t.Logf("A:\n%s", A)
+	B := New(2, 2).SetRow(0, r0).SetRow(1, r1) // 00 10
+	t.Logf("B:\n%s", B)
+	want := New(2, 2).SetRow(0, r1).SetRow(1, r0) // 10 00
+	t.Logf("Want:\n%s", want)
 	C, err := A.Product(B)
 	assert.NoError(err)
+	t.Logf("Got:\n%s", C)
 	D, err := B.Product(A)
 	assert.NoError(err)
+	for i, row := range *C {
+		for j := range row {
+			got, err := C.Get(i, j)
+			assert.NoError(err)
+			want, err := want.Get(i, j)
+			assert.NoError(err)
+			assert.Equal(got, want)
+		}
+	}
 	assert.Equal(want, C)
 	assert.NotEqual(want, D)
-	E := New[int](3, 1)
+	E := New(3, 1)
 	_, err = A.Product(E)
 	assert.Error(err)
 }
 
 func TestAdd(t *testing.T) {
 	assert := assert.New(t)
-	A := New[int](2, 2).SetRow(0, []int{0, 1}).SetRow(1, []int{0, 0})
-	B := New[int](2, 2).SetRow(0, []int{0, 0}).SetRow(1, []int{1, 0})
-	want := New[int](2, 2).SetRow(0, []int{0, 1}).SetRow(1, []int{1, 0})
+	r0 := []*rational.Rational{rational.ParseInt(0), rational.ParseInt(0)}
+	r1 := []*rational.Rational{rational.ParseInt(1), rational.ParseInt(0)}
+	r2 := []*rational.Rational{rational.ParseInt(0), rational.ParseInt(1)}
+	A := New(2, 2).SetRow(0, r2).SetRow(1, r0)
+	B := New(2, 2).SetRow(0, r0).SetRow(1, r1)
+	want := New(2, 2).SetRow(0, r2).SetRow(1, r1)
 	C, err := A.Add(B)
 	assert.NoError(err)
 	assert.Equal(want, C)
 	D, err := B.Add(A)
 	assert.NoError(err)
 	assert.Equal(want, D)
-	E := New[int](3, 1)
+	E := New(3, 1)
 	_, err = A.Add(E)
 	assert.Error(err)
 }
 
 func TestScalar(t *testing.T) {
 	assert := assert.New(t)
-	m := New[int](3, 3)
+	m := New(3, 3)
 	m.
-		SetRow(0, []int{1, 2, 3}).
-		SetRow(1, []int{4, 5, 6}).
-		SetRow(2, []int{7, 8, 9})
-	want := New[int](3, 3)
+		SetRow(0, []*rational.Rational{rational.ParseInt(1), rational.ParseInt(2), rational.ParseInt(3)}).
+		SetRow(1, []*rational.Rational{rational.ParseInt(4), rational.ParseInt(5), rational.ParseInt(6)}).
+		SetRow(2, []*rational.Rational{rational.ParseInt(7), rational.ParseInt(8), rational.ParseInt(9)})
+	want := New(3, 3)
 	want.
-		SetRow(0, []int{3, 6, 9}).
-		SetRow(1, []int{12, 15, 18}).
-		SetRow(2, []int{21, 24, 27})
-	assert.Equal(want, m.Scalar(3))
+		SetRow(0, []*rational.Rational{rational.ParseInt(3), rational.ParseInt(6), rational.ParseInt(9)}).
+		SetRow(1, []*rational.Rational{rational.ParseInt(12), rational.ParseInt(15), rational.ParseInt(18)}).
+		SetRow(2, []*rational.Rational{rational.ParseInt(21), rational.ParseInt(24), rational.ParseInt(27)})
+	assert.Equal(want, m.Scalar(rational.ParseInt(3)))
+}
+
+func makeTestMatrix() *Matrix {
+	a := New(5, 5).
+		SetRow(0, []*rational.Rational{rational.ParseInt(77), rational.ParseInt(88), rational.ParseInt(99), rational.ParseInt(12), rational.ParseInt(42)}).
+		SetRow(1, []*rational.Rational{rational.ParseInt(61), rational.ParseInt(47), rational.ParseInt(8), rational.ParseInt(19), rational.ParseInt(41)}).
+		SetRow(2, []*rational.Rational{rational.ParseInt(1), rational.ParseInt(22), rational.ParseInt(13), rational.ParseInt(74), rational.ParseInt(55)}).
+		SetRow(3, []*rational.Rational{rational.ParseInt(3), rational.ParseInt(17), rational.ParseInt(58), rational.ParseInt(3), rational.ParseInt(32)}).
+		SetRow(4, []*rational.Rational{rational.ParseInt(91), rational.ParseInt(27), rational.ParseInt(49), rational.ParseInt(4), rational.ParseInt(65)})
+	return a
 }
 
 func TestDeterminantClassic(t *testing.T) {
 	assert := assert.New(t)
-	a := New[int](5, 5).
-		SetRow(0, []int{77, 88, 99, 12, 42}).
-		SetRow(1, []int{61, 47, 8, 19, 41}).
-		SetRow(2, []int{1, 22, 13, 74, 55}).
-		SetRow(3, []int{3, 17, 58, 3, 32}).
-		SetRow(4, []int{91, 27, 49, 4, 65})
-	want := -546499540
+	a := makeTestMatrix()
+	want := rational.ParseInt(-546499540)
 	got, err := a.DeterminantClassic()
 	assert.NoError(err)
 	assert.Equal(want, got)
-	b := New[int](2, 2).
-		SetRow(0, []int{4, 7}).
-		SetRow(1, []int{3, 2})
+	b := New(2, 2).
+		SetRow(0, []*rational.Rational{rational.ParseInt(4), rational.ParseInt(7)}).
+		SetRow(1, []*rational.Rational{rational.ParseInt(3), rational.ParseInt(2)})
 	got, err = b.DeterminantClassic()
 	assert.NoError(err)
-	want = 4*2 - 3*7
+	want = rational.ParseInt(4*2 - 3*7)
 	assert.Equal(want, got)
 }
 
 func TestTranspose(t *testing.T) {
 	assert := assert.New(t)
-	a := New[int](5, 3).
-		SetRow(0, []int{77, 88, 99}).
-		SetRow(1, []int{61, 47, 8}).
-		SetRow(2, []int{1, 22, 13}).
-		SetRow(3, []int{3, 17, 58}).
-		SetRow(4, []int{91, 27, 49})
-	want := New[int](3, 5).
-		SetRow(0, []int{77, 61, 1, 3, 91}).
-		SetRow(1, []int{88, 47, 22, 17, 27}).
-		SetRow(2, []int{99, 8, 13, 58, 49})
+	a := New(5, 3).
+		SetRow(0, []*rational.Rational{rational.ParseInt(77), rational.ParseInt(88), rational.ParseInt(99)}).
+		SetRow(1, []*rational.Rational{rational.ParseInt(61), rational.ParseInt(47), rational.ParseInt(8)}).
+		SetRow(2, []*rational.Rational{rational.ParseInt(1), rational.ParseInt(22), rational.ParseInt(13)}).
+		SetRow(3, []*rational.Rational{rational.ParseInt(3), rational.ParseInt(17), rational.ParseInt(58)}).
+		SetRow(4, []*rational.Rational{rational.ParseInt(91), rational.ParseInt(27), rational.ParseInt(49)})
+	want := New(3, 5).
+		SetRow(0, []*rational.Rational{rational.ParseInt(77), rational.ParseInt(61), rational.ParseInt(1), rational.ParseInt(3), rational.ParseInt(91)}).
+		SetRow(1, []*rational.Rational{rational.ParseInt(88), rational.ParseInt(47), rational.ParseInt(22), rational.ParseInt(17), rational.ParseInt(27)}).
+		SetRow(2, []*rational.Rational{rational.ParseInt(99), rational.ParseInt(8), rational.ParseInt(13), rational.ParseInt(58), rational.ParseInt(49)})
 	got := a.Transpose()
 	assert.Equal(want, got)
 }
 
 func TestDeterminant(t *testing.T) {
 	assert := assert.New(t)
-	a := New[int](5, 5).
-		SetRow(0, []int{77, 88, 99, 12, 42}).
-		SetRow(1, []int{61, 47, 8, 19, 41}).
-		SetRow(2, []int{1, 22, 13, 74, 55}).
-		SetRow(3, []int{3, 17, 58, 3, 32}).
-		SetRow(4, []int{91, 27, 49, 4, 65})
+	a := makeTestMatrix()
 	got, err := a.Determinant()
 	assert.NoError(err)
-	want, err := a.DeterminantClassic()
+	want := rational.ParseInt(-546499540)
 	assert.NoError(err)
 	assert.Equal(want, got)
 }
 
 func BenchmarkDeterminant(b *testing.B) {
-	a := New[int](5, 5).
-		SetRow(0, []int{77, 88, 99, 12, 42}).
-		SetRow(1, []int{61, 47, 8, 19, 41}).
-		SetRow(2, []int{1, 22, 13, 74, 55}).
-		SetRow(3, []int{3, 17, 58, 3, 32}).
-		SetRow(4, []int{91, 27, 49, 4, 65})
+	a := makeTestMatrix()
 	for i := 0; i < b.N; i++ {
 		if _, err := a.Determinant(); err != nil {
 			b.Fatal(err)
@@ -137,12 +152,7 @@ func BenchmarkDeterminant(b *testing.B) {
 }
 
 func BenchmarkDeterminantClassic(b *testing.B) {
-	a := New[int](5, 5).
-		SetRow(0, []int{77, 88, 99, 12, 42}).
-		SetRow(1, []int{61, 47, 8, 19, 41}).
-		SetRow(2, []int{1, 22, 13, 74, 55}).
-		SetRow(3, []int{3, 17, 58, 3, 32}).
-		SetRow(4, []int{91, 27, 49, 4, 65})
+	a := makeTestMatrix()
 	for i := 0; i < b.N; i++ {
 		if _, err := a.DeterminantClassic(); err != nil {
 			b.Fatal(err)

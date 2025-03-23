@@ -2,24 +2,43 @@ package matrix
 
 import (
 	"errors"
+	"fmt"
 	"math"
+
+	"github.com/LigeronAhill/linalg/internal/rational"
 )
 
 type Number interface {
 	int | float64
 }
 
-type Matrix[T Number] [][]T
+type Matrix [][]*rational.Rational
 
-func (m *Matrix[T]) Get(row, col int) (T, error) {
+func (m *Matrix) Get(row, col int) (*rational.Rational, error) {
 	if m.Rows() < row || m.Cols() < col {
-		return 0, errors.New("wrong arguments")
+		return nil, errors.New("wrong arguments")
 	} else {
 		return (*m)[row][col], nil
 	}
 }
 
-func (m *Matrix[T]) Set(row, col int, newValue T) error {
+func (m *Matrix) String() string {
+	var s string
+	for _, row := range *m {
+		s += fmt.Sprintf("%v\n", row)
+	}
+	return s
+}
+
+func (m *Matrix) GetRow(row int) ([]*rational.Rational, error) {
+	if m.Rows() < row {
+		return nil, errors.New("wrong arguments")
+	} else {
+		return (*m)[row], nil
+	}
+}
+
+func (m *Matrix) Set(row, col int, newValue *rational.Rational) error {
 	if m.Rows() < row || m.Cols() < col {
 		return errors.New("wrong arguments")
 	} else {
@@ -28,68 +47,56 @@ func (m *Matrix[T]) Set(row, col int, newValue T) error {
 	}
 }
 
-func New[T Number](rows, cols int) *Matrix[T] {
-	var m Matrix[T] = make([][]T, rows)
+func New(rows, cols int) *Matrix {
+	var m Matrix = make([][]*rational.Rational, rows)
 	for i := range m {
-		m[i] = make([]T, cols)
+		m[i] = make([]*rational.Rational, cols)
+		for j := range m[i] {
+			m[i][j] = rational.ParseInt(0)
+		}
 	}
 	return &m
 }
 
-func (m *Matrix[T]) Rows() int {
+func (m *Matrix) Rows() int {
 	return len(*m)
 }
 
-func (m *Matrix[T]) Cols() int {
+func (m *Matrix) Cols() int {
 	return len((*m)[0])
 }
 
-func (m *Matrix[T]) SetRow(index int, row []T) *Matrix[T] {
+func (m *Matrix) SetRow(index int, row []*rational.Rational) *Matrix {
 	copy((*m)[index], row)
 	return m
 }
 
-func (a *Matrix[T]) Product(b *Matrix[T]) (*Matrix[T], error) {
+func (a *Matrix) Product(b *Matrix) (*Matrix, error) {
 	if a.Rows() != b.Cols() {
 		return nil, errors.New("wrong matrices sizes")
 	}
 	n := b.Rows()
-	c := New[T](a.Rows(), b.Cols())
+	c := New(a.Rows(), b.Cols())
 	for i := 0; i < a.Rows(); i++ {
 		for j := 0; j < b.Cols(); j++ {
 			for l := 0; l < n; l++ {
-				aVal, err := a.Get(i, l)
-				if err != nil {
-					return nil, err
-				}
-				bVal, err := b.Get(l, j)
-				if err != nil {
-					return nil, err
-				}
-				cVal, err := c.Get(i, j)
-				if err != nil {
-					return nil, err
-				}
-				v := cVal + aVal*bVal
-				err = c.Set(i, j, v)
-				if err != nil {
-					return nil, err
-				}
+				p := (*a)[i][l].Multiply((*b)[l][j])
+				(*c)[i][j] = (*c)[i][j].Add(p)
 			}
 		}
 	}
 	return c, nil
 }
 
-func (a *Matrix[T]) Add(b *Matrix[T]) (*Matrix[T], error) {
+func (a *Matrix) Add(b *Matrix) (*Matrix, error) {
 	if a.Rows() != b.Rows() || a.Cols() != b.Cols() {
 		return nil, errors.New("wrong matrices sizes")
 	}
-	c := New[T](a.Rows(), a.Cols())
+	c := New(a.Rows(), a.Cols())
 	for i, row := range *a {
 		for j, element := range row {
 			bVal, _ := b.Get(i, j)
-			err := c.Set(i, j, element+bVal)
+			err := c.Set(i, j, element.Add(bVal))
 			if err != nil {
 				return nil, err
 			}
@@ -98,43 +105,51 @@ func (a *Matrix[T]) Add(b *Matrix[T]) (*Matrix[T], error) {
 	return c, nil
 }
 
-func (a *Matrix[T]) Scalar(p T) *Matrix[T] {
-	result := New[T](a.Rows(), a.Cols())
+func (a *Matrix) Scalar(p *rational.Rational) *Matrix {
+	result := New(a.Rows(), a.Cols())
 	for i, row := range *a {
 		for j, element := range row {
-			result.Set(i, j, element*p)
+			result.Set(i, j, element.Multiply(p))
 		}
 	}
 	return result
 }
 
-func (m *Matrix[T]) DeterminantClassic() (T, error) {
+func (m *Matrix) DeterminantClassic() (*rational.Rational, error) {
 	if m.Rows() != m.Cols() {
-		return -1, errors.New("matrix must be n x n")
+		return nil, errors.New("matrix must be n x n")
 	}
 	if m.Rows() == 2 {
 		a, _ := m.Get(0, 0)
 		b, _ := m.Get(1, 1)
 		c, _ := m.Get(0, 1)
 		d, _ := m.Get(1, 0)
-		return a*b - c*d, nil
+		a = a.Multiply(b)
+		b = c.Multiply(d)
+		return a.Sub(b), nil
 	} else {
-		var d T = 0
+		d := rational.ParseInt(0)
 		for col, element := range (*m)[0] {
 			minorMatrix := m.minor(col)
-			sign := T(math.Pow(-1.0, float64(col)))
+			signVal := math.Pow(-1.0, float64(col))
+			sign := rational.ParseInt(1)
+			if signVal < 0 {
+				sign = rational.ParseInt(-1)
+			}
 			minorDet, err := minorMatrix.DeterminantClassic()
 			if err != nil {
-				return -1, err
+				return nil, err
 			}
-			d += sign * element * minorDet
+			td := element.Multiply(minorDet)
+			td = td.Multiply(sign)
+			d = d.Add(td)
 		}
 		return d, nil
 	}
 }
 
-func (m *Matrix[T]) minor(col int) *Matrix[T] {
-	noFirstRowMatrix := New[T](m.Rows()-1, m.Cols())
+func (m *Matrix) minor(col int) *Matrix {
+	noFirstRowMatrix := New(m.Rows()-1, m.Cols())
 
 	for i, row := range *m {
 		if i != 0 {
@@ -142,10 +157,10 @@ func (m *Matrix[T]) minor(col int) *Matrix[T] {
 		}
 	}
 
-	result := New[T](noFirstRowMatrix.Rows(), m.Cols()-1)
+	result := New(noFirstRowMatrix.Rows(), m.Cols()-1)
 
 	for i, row := range *noFirstRowMatrix {
-		var newRow []T
+		var newRow []*rational.Rational
 		for j, element := range row {
 			if j != col {
 				newRow = append(newRow, element)
@@ -156,8 +171,8 @@ func (m *Matrix[T]) minor(col int) *Matrix[T] {
 	return result
 }
 
-func (m *Matrix[T]) Transpose() *Matrix[T] {
-	result := New[T](m.Cols(), m.Rows())
+func (m *Matrix) Transpose() *Matrix {
+	result := New(m.Cols(), m.Rows())
 	for j, row := range *m {
 		for i, element := range row {
 			result.Set(i, j, element)
@@ -166,56 +181,57 @@ func (m *Matrix[T]) Transpose() *Matrix[T] {
 	return result
 }
 
-func (m *Matrix[T]) Determinant() (T, error) {
+func (m *Matrix) Determinant() (*rational.Rational, error) {
 	if m.Rows() != m.Cols() {
-		return -1, errors.New("matrix must be n x n")
+		return nil, errors.New("matrix must be n x n")
 	}
-	result := New[float64](m.Rows(), m.Cols())
-	for i, row := range *m {
-		for j, element := range row {
-			result.Set(i, j, float64(element))
-		}
-	}
+	result := m
 	for j := 0; j < result.Cols(); j++ {
 		for i := 1; i < result.Rows(); i++ {
 			if j < i {
-				if element, _ := result.Get(i, j); element == 0.0 {
+				element, _ := result.Get(i, j)
+				if element == rational.ParseInt(0) {
 					continue
 				}
-				top, _ := result.Get(i, j)
-				bottom, _ := result.Get(j, j)
-				m := top / bottom
-				cur := result.multyRow(i, 1.0)
-				mod := result.multyRow(j, m)
-				for i, el := range mod {
-					mod[i] = cur[i] - el
+				d, _ := result.Get(j, j)
+				m := element.Divide(d)
+				mr, _ := result.GetRow(j) // 7
+				cr, _ := result.GetRow(i) // 5
+				for k, el := range cr {
+					v := el.Sub(mr[k].Multiply(m))
+					if k == j && v.N() != 0 {
+						fmt.Printf("ELEMENT: %s\n", el.String())
+						fmt.Printf("DIVIDER: %s\n", d.String())
+						fmt.Printf("NEW ELEMENT: %s\n", v.String())
+						fmt.Printf("MODIFIER: %s\n", m.String())
+						fmt.Printf("MODIFYING ELEMENT: %s\n", mr[k].String())
+						fmt.Printf("PRODUCTION: %s\n", mr[k].Multiply(m).String())
+					}
+					cr[k] = v
 				}
-				result.SetRow(i, mod)
+				result.SetRow(i, cr)
 			}
 		}
 	}
-	d := 1.0
+	for _, row := range *result {
+		fmt.Println(row)
+	}
+	d := rational.ParseInt(1)
 	for i, row := range *result {
 		for j, element := range row {
 			if i == j {
-				d *= element
+				d = d.Multiply(element)
 			}
 		}
 	}
-	e, _ := m.Get(0, 0)
-	switch any(e).(type) {
-	case int:
-		return T(math.Round(d)), nil
-	default:
-		return T(d), nil
-	}
+	return d, nil
 }
 
-func (m *Matrix[T]) multyRow(i int, modifier float64) []float64 {
-	var result []float64
+func (m *Matrix) multyRow(i int, modifier *rational.Rational) []*rational.Rational {
+	var result []*rational.Rational
 	current := (*m)[i]
 	for _, c := range current {
-		result = append(result, float64(c)*modifier)
+		result = append(result, c.Multiply(modifier))
 	}
 	return result
 }

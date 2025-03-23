@@ -9,26 +9,22 @@ import (
 )
 
 type Rational struct {
-	i int
 	n int
 	d int
 }
 
-func New(i, n, d int) *Rational {
-	if d != 0 {
-		gcd := gcd(n, d)
-		n /= gcd
-		d /= gcd
-		for n >= d {
-			n -= d
-			i += 1
-		}
-		if n == 0 {
-			d = 0
-		}
+func New(n, d int) *Rational {
+	if d == 0 {
+		d = 1
 	}
+	if (n < 0 && d < 0) || d < 0 {
+		n = -n
+		d = -d
+	}
+	gcd := gcd(n, d)
+	n /= gcd
+	d /= gcd
 	return &Rational{
-		i,
 		n,
 		d,
 	}
@@ -38,13 +34,15 @@ func gcd(x, y int) int {
 	for y != 0 {
 		x, y = y, x%y
 	}
-	return x
+	if x < 0 {
+		return -x
+	} else {
+		return x
+	}
 }
 
 func ParseInt(i int) *Rational {
-	return &Rational{
-		i: i,
-	}
+	return New(i, 1)
 }
 
 func ParseFloat(f float64) (*Rational, error) {
@@ -65,104 +63,57 @@ func ParseFloat(f float64) (*Rational, error) {
 	if err != nil {
 		return nil, err
 	}
-	n := int(n64)
-	return New(i, n, d), nil
+	n := int(n64) + i*d
+	if d == 0 {
+		d = 1
+	}
+	return New(n, d), nil
+}
+
+func (a *Rational) N() int {
+	return a.n
+}
+
+func (a *Rational) D() int {
+	return a.d
 }
 
 func (a *Rational) Add(b *Rational) *Rational {
-	commonDenominator := 1
-	if a.d != 0 {
-		commonDenominator *= a.d
-	}
-	if b.d != 0 {
-		commonDenominator *= b.d
-	}
-	ai := a.i * commonDenominator
-	bi := b.i * commonDenominator
-	an := a.n
-	if b.d != 0 {
-		an *= b.d
-	}
-	bn := b.n
-	if a.d != 0 {
-		bn *= a.d
-	}
-	n := ai + an + bi + bn
-	return New(0, n, commonDenominator)
+	commonDenominator := a.d * b.d
+	n := a.n*b.d + b.n*a.d
+	return New(n, commonDenominator)
 }
 
 func (a *Rational) Sub(b *Rational) *Rational {
-	commonDenominator := 1
-	if a.d != 0 {
-		commonDenominator *= a.d
-	}
-	if b.d != 0 {
-		commonDenominator *= b.d
-	}
-	ai := a.i * commonDenominator
-	bi := b.i * commonDenominator
-	an := a.n
-	if b.d != 0 {
-		an *= b.d
-	}
-	bn := b.n
-	if a.d != 0 {
-		bn *= a.d
-	}
-	n := ai + an - bi - bn
-	return New(0, n, commonDenominator)
+	commonDenominator := a.d * b.d
+	n := a.n*b.d - b.n*a.d
+	return New(n, commonDenominator)
 }
 
 func (a *Rational) Multiply(b *Rational) *Rational {
-	an := a.i
-	ad := 1
-	if a.d != 0 {
-		an = a.d*a.i + a.n
-		ad *= a.d
-	}
-	bn := b.i
-	bd := 1
-	if b.d != 0 {
-		bn = b.d*b.i + b.n
-		bd *= b.d
-	}
-	n := an * bn
-	d := ad * bd
-	return New(0, n, d)
+	return New(a.n*b.n, a.d*b.d)
 }
 
 func (a *Rational) Divide(b *Rational) *Rational {
-	an := a.i
-	ad := 1
-	if a.d != 0 {
-		an = a.d*a.i + a.n
-		ad *= a.d
-	}
-	bn := b.i
-	bd := 1
-	if b.d != 0 {
-		bn = b.d*b.i + b.n
-		bd *= b.d
-	}
-	n := an * bd
-	d := ad * bn
-	return New(0, n, d)
+	return New(a.n*b.d, a.d*b.n)
 }
 
 func (r *Rational) String() string {
 	var s string
-	if r.i != 0 {
-		s += strconv.FormatInt(int64(r.i), 10)
+	i := r.n / r.d
+	n := r.n % r.d
+	if i != 0 {
+		s += strconv.FormatInt(int64(i), 10)
 	}
-	if r.n != 0 {
-		if r.i != 0 {
+	if n != 0 {
+		if i != 0 {
 			s += " + "
 		}
 		if r.d < 0 {
-			r.n *= -1
+			n *= -1
 			r.d *= -1
 		}
-		s += strconv.FormatInt(int64(r.n), 10) + "/" + strconv.FormatInt(int64(r.d), 10)
+		s += strconv.FormatInt(int64(n), 10) + "/" + strconv.FormatInt(int64(r.d), 10)
 	}
 	if len(s) == 0 {
 		s += "0"
